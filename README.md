@@ -67,13 +67,13 @@ Each Sample conforms to the **ShareGPT** format, which is the prevailing specifi
 
 Our work is entirely dependent on the contributions of the open source community, who have helped us immensely in our endeavours:
 
-- models
+- Models
 1. [internlm/internlm2-reward](https://huggingface.co/internlm/internlm2-20b-reward)
 2. [sfairXC/FsfairX-LLaMA3-RM-v0.1](https://huggingface.co/sfairXC/FsfairX-LLaMA3-RM-v0.1)
 3. [Qwen/Qwen2-7B-Instruct](https://huggingface.co/Qwen/Qwen2-7B-Instruct)
 4. [meta-llama/Llama-Guard-3-8B](https://huggingface.co/meta-llama/Llama-Guard-3-8B)
 
-- datasets
+- Datasets
 1. [argilla/magpie-ultra-v0.1](https://huggingface.co/datasets/argilla/magpie-ultra-v0.1)
 2. [BAAI/Infinity-Instruct](https://huggingface.co/datasets/BAAI/Infinity-Instruct)
 3. [Replete-AI/code_bagel_hermes-2.5](https://huggingface.co/datasets/Replete-AI/code_bagel_hermes-2.5)
