@@ -1,4 +1,4 @@
-<h1 align="center">🐋MT-SFT-ShareGPT</h1>
+<div align=center><img src ="./MT-SFT-ShareGPT.png"/></div>  
 
 ### Introduction
 
