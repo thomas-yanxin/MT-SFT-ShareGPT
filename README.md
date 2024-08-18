@@ -1,4 +1,21 @@
-<div align=center><img src ="./MT-SFT-ShareGPT.png"/></div>  
+
+<div align="center">
+
+<img src="MT-SFT-ShareGPT.png" />
+  <div>&nbsp;</div>
+  <div align="center">
+    <b><font size="6">MT-SFT-ShareGPT</font></b>
+    <sup>
+      <a href="https://github.com/thomas-yanxin/MT-SFT-ShareGPT">
+      </a>
+    </sup>
+    <div>&nbsp;</div>
+  </div>
+  
+[💻 Github Repo](https://github.com/thomas-yanxin/MT-SFT-ShareGPT)  •  [🤗 HuggingFace](https://huggingface.co/datasets/thomas-yanxin/MT-SFT-ShareGPT)  •  [🤖 ModelScope](https://www.modelscope.cn/datasets/thomas/MT-SFT-ShareGPT)
+
+</div>
+
 
 ### Introduction
 
