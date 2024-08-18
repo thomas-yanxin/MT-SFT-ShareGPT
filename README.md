@@ -65,6 +65,8 @@ Each Sample conforms to the **ShareGPT** format, which is the prevailing specifi
 
 ### Thanks
 
+Our work is entirely dependent on the contributions of the open source community, who have helped us immensely in our endeavours:
+
 - models
 1. [internlm/internlm2-reward](https://huggingface.co/internlm/internlm2-20b-reward)
 2. [sfairXC/FsfairX-LLaMA3-RM-v0.1](https://huggingface.co/sfairXC/FsfairX-LLaMA3-RM-v0.1)
@@ -79,7 +81,25 @@ Each Sample conforms to the **ShareGPT** format, which is the prevailing specifi
 5. [teknium/OpenHermes-2.5](https://huggingface.co/datasets/teknium/OpenHermes-2.5)
 6. [TIGER-Lab/MathInstruct](https://huggingface.co/datasets/TIGER-Lab/MathInstruct)
 7. [arcee-ai/The-Tome](https://huggingface.co/datasets/arcee-ai/The-Tome)
-8. ……
+8. [SUSTech/wildchat_zh](https://huggingface.co/datasets/SUSTech/wildchat_zh)
+9. [internlm/Agent-FLAN](https://huggingface.co/datasets/internlm/Agent-FLAN)
+10. [BAAI/COIG](https://huggingface.co/datasets/BAAI/COIG)
+11. [xingyaoww/code-act](https://huggingface.co/datasets/xingyaoww/code-act)
+12. [YeungNLP/firefly-train-1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
+13. [ToheartZhang/JiuZhang3.0-Corpus-SFT](https://huggingface.co/datasets/ToheartZhang/JiuZhang3.0-Corpus-SFT)
+14. [GAIR/lima](https://huggingface.co/datasets/GAIR/lima)
+15. [YeungNLP/LongQLoRA-Dataset](https://huggingface.co/datasets/YeungNLP/LongQLoRA-Dataset)
+16. [datafreak/MathQA](https://huggingface.co/datasets/datafreak/MathQA)
+17. [ajibawa-2023/Maths-College](https://huggingface.co/datasets/ajibawa-2023/Maths-College)
+18. [iboing/MetaMathQA-395K](https://huggingface.co/datasets/iboing/MetaMathQA-395K)
+19. [neo_sft_phase2](https://huggingface.co/datasets/m-a-p/neo_sft_phase2)
+20. [AI-MO/NuminaMath-CoT](https://huggingface.co/datasets/AI-MO/NuminaMath-CoT)
+21. [wenbopan/OpenHermes-2.5-zh](https://huggingface.co/datasets/wenbopan/OpenHermes-2.5-zh)
+22. [yys/OpenOrca-Chinese](https://huggingface.co/datasets/yys/OpenOrca-Chinese)
+23. [distilabel-internal-testing/Capybara-and-SystemChat-1.1-Filtered](https://huggingface.co/datasets/distilabel-internal-testing/Capybara-and-SystemChat-1.1-Filtered)
+24. [migtissera/Tess-v1.5](https://huggingface.co/datasets/migtissera/Tess-v1.5)
+25. [TIGER-Lab/WebInstructSub](https://huggingface.co/datasets/TIGER-Lab/WebInstructSub)
+26. ……
    
 - Papers
 1. https://arxiv.org/pdf/2304.12244
