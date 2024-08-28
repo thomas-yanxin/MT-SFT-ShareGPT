@@ -105,3 +105,15 @@ Our work is entirely dependent on the contributions of the open source community
 1. https://arxiv.org/pdf/2304.12244
 2. https://arxiv.org/pdf/2406.08464
 3. https://ai.meta.com/research/publications/the-llama-3-herd-of-models/
+
+```
+@article{xu2024magpie,
+  title={Magpie: Alignment Data Synthesis from Scratch by Prompting Aligned LLMs with Nothing},
+  author={Zhangchen Xu and Fengqing Jiang and Luyao Niu and Yuntian Deng and Radha Poovendran and Yejin Choi and Bill Yuchen Lin},
+  journal={ArXiv},
+  year={2024},
+  volume={abs/2406.08464},
+  url={https://api.semanticscholar.org/CorpusID:270391432}
+}
+
+```
