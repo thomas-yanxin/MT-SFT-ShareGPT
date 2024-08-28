@@ -56,6 +56,19 @@ The total data size of the dataset is **5,563,444**, which can be seen in the fo
 
 We used the [internlm/internlm2-reward](https://huggingface.co/internlm/internlm2-20b-reward) series and [sfairXC/FsfairX-LLaMA3-RM-v0.1](https://huggingface.co/sfairXC/FsfairX-LLaMA3-RM-v0.1) to score each Sample, using the [Qwen/Qwen2-7B-Instruct](https://huggingface.co/Qwen/Qwen2-7B-Instruct) series to categorise the data for tasks, quality scoring and other operations, use [meta-llama/Llama-Guard-3-8B](https://huggingface.co/meta-llama/Llama-Guard-3-8B) to determine if Sample meets security standards.
 
+We have made the code for tagging data publicly available, and you can configure and use this process in the following ways, which can be viewed in detail:
+
+- Install
+```
+pip install -r requirements.txt
+```
+
+- Run
+```
+bash scripts/unitag.sh
+```
+
+
 Each Sample conforms to the **ShareGPT** format, which is the prevailing specification in the community for training large language models:
 
 ```
