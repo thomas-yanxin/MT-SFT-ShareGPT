@@ -29,7 +29,7 @@ echo "[unitag.sh] System Config: device=$device, batch_size=$batch_size"
 
 if [ $tag_mission == "language" ] || [ $tag_mission == "all" ]; then
     echo "[unitag.sh] Start Generating Language Tags..."
-    CUDA_VISIBLE_DEVICES=$device python ./src/unitag.py \
+    python ./src/unitag.py \
         --device $device \
         --input_file $input_file \
         --tag_mission "language" \
@@ -44,6 +44,26 @@ if [ $tag_mission == "language" ] || [ $tag_mission == "all" ]; then
     input_file=$language_tag_file
     echo "[unitag.sh] Language Tagged File: $input_file"
 fi
+
+
+if [ $tag_mission == "token_count" ] || [ $tag_mission == "all" ]; then
+    echo "[unitag.sh] Start Generating token_count Tags..."
+    python ./src/unitag.py \
+        --device $device \
+        --input_file $input_file \
+        --tag_mission "token_count" \
+        --model_path $model_path \
+
+    echo "[unitag.sh] Finish Generating token_count Tags!"
+
+    input_file_name=$(basename $input_file)
+    input_file_dir=$(dirname $input_file)
+    input_file_name_no_ext="${input_file_name%.*}"
+    input_file_ext="${input_file_name##*.}"
+    token_count_tag_file="${input_file_dir}/${input_file_name_no_ext}_token_count.${input_file_ext}"
+    input_file=$token_count_tag_file
+    echo "[unitag.sh] token_count Tagged File: $input_file"
+
 
 
 if [ $tag_mission == "reward" ] || [ $tag_mission == "all" ]; then
@@ -70,7 +90,7 @@ fi
 
 if [ $tag_mission == "safety" ] || [ $tag_mission == "all" ]; then
     echo "[unitag.sh] Start Generating Safety Tags..."
-    CUDA_VISIBLE_DEVICES=$device python ./src/unitag.py \
+    python ./src/unitag.py \
         --device $device \
         --guard_model_path $guard_model_path \
         --input_file $input_file \
@@ -93,7 +113,7 @@ fi
 
 if [ $tag_mission == "difficulty" ] || [ $tag_mission == "all" ]; then
     echo "[unitag.sh] Start Generating Difficulty Tags..."
-    CUDA_VISIBLE_DEVICES=$device python ./src/unitag.py \
+    python ./src/unitag.py \
         --device $device \
         --model_path $model_path \
         --input_file $input_file \
@@ -115,7 +135,7 @@ fi
 
 if [ $tag_mission == "quality" ] || [ $tag_mission == "all" ]; then
     echo "[unitag.sh] Start Generating Quality Tags..."
-    CUDA_VISIBLE_DEVICES=$device python ./src/unitag.py \
+    python ./src/unitag.py \
         --device $device \
         --model_path $model_path \
         --input_file $input_file \
@@ -137,7 +157,7 @@ fi
 
 if [ $tag_mission == "classification" ] || [ $tag_mission == "all" ]; then
     echo "[unitag.sh] Start Generating Task Tags..."
-    CUDA_VISIBLE_DEVICES=$device python ./src/unitag.py \
+    python ./src/unitag.py \
         --device $device \
         --model_path $model_path \
         --input_file $input_file \
@@ -160,7 +180,7 @@ fi
 
 if [ $tag_mission == "refined" ] || [ $tag_mission == "all" ]; then
     echo "[unitag.sh] Start Generating Refined Tags..."
-    CUDA_VISIBLE_DEVICES=$device python ./src/unitag.py \
+    python ./src/unitag.py \
         --input_file $input_file \
         --tag_mission "refined" \
         --gpu_memory_utilization $gpu_memory_utilization \

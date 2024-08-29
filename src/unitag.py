@@ -283,38 +283,33 @@ def reward_tag(model, device, input_file, batch_size, save_as):
 
     with open(f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_reward.{save_as}", 'a+', encoding='utf8') as out:
 
-        all_batch = []
+
         data_list = load_jsonl_to_list(input_file)
-        if batch_size > 100:
-            batch_size = 10
-        for i in tqdm(range(0, len(data_list), batch_size)):
-            all_batch = data_list[i:i + batch_size]
+
+        batch_size = 1
+        for n in tqdm(data_list):
+
             token_count = 0
-            text_reward_list = []
-            for n in all_batch:
-                if 'token_count' in n:
-                    token_count = n['token_count']
-                else:
-                    text_ = reward_tokenizer.apply_chat_template(
-                        conversations_mapping(n['conversations']),
-                        tokenize=False,
-                        add_generation_prompt=True
-                            )
-                    token_count = len(reward_tokenizer.encode(text_))
 
-                if token_count > 8192:
-                    n['reward'] = 0
-                    all_batch.remove(n)
-                    jsonlines.Writer(out).write(n)   
-                else:
-                    text_reward_list.append(conversations_mapping(n['conversations']))
+            if 'token_count' in n:
+                token_count = n['token_count']
+            else:
+                text_ = reward_tokenizer.apply_chat_template(
+                    conversations_mapping(n['conversations']),
+                    tokenize=False,
+                    add_generation_prompt=True
+                        )
+                token_count = len(reward_tokenizer.encode(text_))
 
-            result = reward_model.get_scores(reward_tokenizer, text_reward_list)
+            if token_count > 8192:
+                n['reward'] = 0
 
-            for num, res in enumerate(zip(all_batch, result)):
-                all_batch[num]['reward'] = str(res[1])
-                jsonlines.Writer(out).write(all_batch[num])
-            all_batch = []
+                jsonlines.Writer(out).write(n)   
+            else:
+                result = reward_model.get_scores(reward_tokenizer, conversations_mapping(n['conversations']))
+                n['reward'] = str(result)
+                jsonlines.Writer(out).write(n)
+
     
     output_file = f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_reward.{save_as}"
     return output_file
