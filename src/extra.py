@@ -95,7 +95,7 @@ def safety_split(file_path):
         data = list(reader)
     safety_high = []
     for item in data:
-        if item["safety"] == "unsafe":
+        if "unsafe" in item["safety"]:
             pass
         else:
             safety_high.append(item)

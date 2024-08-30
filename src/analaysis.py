@@ -4,10 +4,7 @@ import sys
 
 import jsonlines
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 from tqdm import tqdm
-from transformers import AutoModel, AutoTokenizer, pipeline
 
 
 def difficulty_distribution(data):
