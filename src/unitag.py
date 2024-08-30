@@ -247,10 +247,10 @@ def safety_tag(model, device, input_file, batch_size, save_as):
             result = safety_get_completion(prompts_safety, llm=safety_llm)
             refined_result = []
             for res in result:
-                if 'safe' in res:
-                    refined_result.append('safe')
-                else:
+                if 'unsafe' in res:
                     refined_result.append('unsafe')
+                else:
+                    refined_result.append('safe')
 
             for num, res in enumerate(zip(all_batch, refined_result)):
                 all_batch[num]['safety'] = res[1]
