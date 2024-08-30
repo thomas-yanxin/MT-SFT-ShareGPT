@@ -1,7 +1,10 @@
 # 根据分析结果抽取对应的数据
 
+import argparse
+import gc
 import json
 import os
+import sys
 
 import jsonlines
 import matplotlib.pyplot as plt
@@ -10,6 +13,23 @@ import pandas as pd
 from tqdm import tqdm
 
 from analaysis import reward_distribution
+
+
+def get_args():
+    # Experiment Settings
+    parser = argparse.ArgumentParser(description="Extract the data based on the given task.")
+    parser.add_argument("--file_path", type=str, help="The path of the input file.")
+    parser.add_argument("--task", type=str, default="all", choices=["difficulty", "quality", "classification", "safety", "reward", "language", "token_count", "all"], help="The task type.")
+    parser.add_argument("--threshold", type=float, default=0.5, help="The threshold value for the reward.")
+    parser.add_argument("--token_num", type=int, default=8192, help="The token number for the token count.")
+    parser.add_argument("--remove_quality_list", type=list, default=["low"], help="The quality list to be removed. ['low', 'medium', 'high', 'very high']")
+    parser.add_argument("--remove_difficulty_list", type=list, default=["very easy", "easy"], help="The difficulty list to be removed.")
+
+
+    return parser.parse_args()
+
+args = get_args()
+
 
 
 def language_split(file_path):
@@ -106,33 +126,66 @@ def safety_split(file_path):
 
     return output_path_safety
 
-def main(file_path):
-    # 1. Split the data based on the language
-    output_language_list = language_split(file_path)
-    print(f"Data split based on language: {output_language_list}")
 
-    # 2. Split the data based on the reward value
-    threshold = 0.5
+def quality_split(file_path, remove_quality_list):
+    with jsonlines.open(file_path) as reader:
+        data = list(reader)
+    quality_high = []
+    for item in data:
+        if item["quality"] in remove_quality_list:
+            pass
+        else:
+            quality_high.append(item)
+    output_path_quality = file_path.split(os.path.splitext(file_path)[-1])[0]+'_quality_high.jsonl'
+    with jsonlines.open(output_path_quality, mode="w") as writer:
+        for item in tqdm(quality_high):
+            writer.write(item)
 
-    for item in output_language_list:
-        output_path_small = reward_split(item, threshold)
-        print(f"Data split based on reward value: {output_path_small}")
+    return output_path_quality
 
-        # 3. Split the data based on the token count
-        token_num = 8192
-        output_path_small, output_path_long = token_count_split(file_path, token_num)
-        print(f"Data split based on token count: {output_path_small}, {output_path_long}")
+def difficulty_split(file_path, remove_difficulty_list):
+    with jsonlines.open(file_path) as reader:
+        data = list(reader)
+    difficulty_high = []
+    for item in data:
+        if item["difficulty"] in remove_difficulty_list:
+            pass
+        else:
+            difficulty_high.append(item)
+    output_path_difficulty = file_path.split(os.path.splitext(file_path)[-1])[0]+'_difficulty_high.jsonl'
+    with jsonlines.open(output_path_difficulty, mode="w") as writer:
+        for item in tqdm(difficulty_high):
+            writer.write(item)
 
-        # 4. Split the data based on the safety value
-        output_path_safety = safety_split(file_path)
-        print(f"Data split based on safety value: {output_path_safety}")
-    
-    
+    return output_path_difficulty
+
+
+def main():
+    if args.task == "language":
+        language_split(args.file_path)
+    elif args.task == "reward":
+        reward_split(args.file_path, args.threshold)
+    elif args.task == "token_count":
+        token_count_split(args.file_path, args.token_num)
+    elif args.task == "safety":
+        safety_split(args.file_path)
+    elif args.task == "quality":
+        quality_split(args.file_path, args.remove_quality_list)
+    elif args.task == "difficulty":
+        difficulty_split(args.file_path, args.remove_difficulty_list)
+    elif args.task == "all":
+        language_list = language_split(args.file_path)
+        for file_path in language_list:
+            token_count_file = token_count_split(file_path, args.token_num)
+            safety_file = safety_split(token_count_file)
+            quality_file = quality_split(safety_file, args.remove_quality_list)
+            difficulty_file = difficulty_split(quality_file, args.remove_difficulty_list)
+            reward_file = reward_split(difficulty_file, args.threshold)
+    else:
+        print("The task is not supported.")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    main("data.jsonl")
 
-
-        
-
-    
-
+    main()
