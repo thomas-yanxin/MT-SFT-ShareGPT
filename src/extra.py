@@ -12,8 +12,6 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from analaysis import reward_distribution
-
 
 def get_args():
     # Experiment Settings
@@ -25,11 +23,9 @@ def get_args():
     parser.add_argument("--remove_quality_list", type=list, default=["low"], help="The quality list to be removed. ['low', 'medium', 'high', 'very high']")
     parser.add_argument("--remove_difficulty_list", type=list, default=["very easy", "easy"], help="The difficulty list to be removed.")
 
-
     return parser.parse_args()
 
 args = get_args()
-
 
 
 def language_split(file_path):
