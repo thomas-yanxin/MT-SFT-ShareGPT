@@ -89,7 +89,7 @@ def language_distribution(data):
 def token_count_distribution(data):
     token_count_list = [item["token_count"] for item in data]
     token_count_dict = {}
-    token_cound_range = [128, 256, 512, 1024, 2048, 4096, 8192]
+    token_cound_range = [0, 128, 256, 512, 1024, 2048, 4096, 8192]
     for i in range(len(token_cound_range) - 1):
         token_count_dict[f"{token_cound_range[i]}-{token_cound_range[i + 1]}"] = 0
     token_count_dict[f"{token_cound_range[-1]}-"] = 0
