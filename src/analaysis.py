@@ -12,6 +12,8 @@ from transformers import AutoModel, AutoTokenizer, pipeline
 
 def difficulty_distribution(data):
     difficulty_list = [item["difficulty"] for item in data]
+    # 替换列表中的None值
+    difficulty_list = [item if item is not None else "None" for item in difficulty_list]
     difficulty_dict = {}
     for item in tqdm(difficulty_list):
         if item in difficulty_dict:
@@ -23,6 +25,7 @@ def difficulty_distribution(data):
 
 def quality_distribution(data):
     quality_list = [item["quality"] for item in data]
+    quality_list = [item if item is not None else "None" for item in quality_list]
     quality_dict = {}
     for item in tqdm(quality_list):
         if item in quality_dict:
@@ -34,6 +37,7 @@ def quality_distribution(data):
 
 def classification_distribution(data):
     classification_list = [item["classification"] for item in data]
+    classification_list = [item if item is not None else "None" for item in classification_list]
     classification_dict = {}
     for item in tqdm(classification_list):
         if item in classification_dict:
