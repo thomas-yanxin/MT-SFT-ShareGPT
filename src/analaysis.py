@@ -105,8 +105,16 @@ def token_count_distribution(data):
 
 ## 分析数据各个维度的分布
 def analyze_data_distribution(data_path):
-    with jsonlines.open(data_path) as reader:
-        data = list(reader)
+    # 判断data_path是文件夹还是文件
+    if os.path.isdir(data_path):
+        data_path_list = [os.path.join(data_path, file) for file in os.listdir(data_path)]
+        data = []
+        for file in data_path_list:
+            with jsonlines.open(file) as reader:
+                data.extend(list(reader))
+    else:
+        with jsonlines.open(data_path) as reader:
+            data = list(reader)
     print(f"Number of data samples: {len(data)}")
     print(f"Example data: {data[0]}")
     key_list = [key for key in data[0].keys()]
