@@ -342,7 +342,6 @@ def refined_result(input_file, save_as):
                             refined[key] = 0
                         elif key == 'source':
                             refined[key] = 'None'
-                    
                 jsonlines.Writer(out).write(refined)
     
     output_file = f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_refined.{save_as}"
