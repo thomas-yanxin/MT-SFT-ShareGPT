@@ -156,30 +156,45 @@ def difficulty_split(file_path, remove_difficulty_list):
     return output_path_difficulty
 
 
-def main():
-    if args.task == "language":
-        language_split(args.file_path)
-    elif args.task == "reward":
-        reward_split(args.file_path, args.threshold)
-    elif args.task == "token_count":
-        token_count_split(args.file_path, args.token_num)
-    elif args.task == "safety":
-        safety_split(args.file_path)
-    elif args.task == "quality":
-        quality_split(args.file_path, args.remove_quality_list)
-    elif args.task == "difficulty":
-        difficulty_split(args.file_path, args.remove_difficulty_list)
-    elif args.task == "all":
-        language_list = language_split(args.file_path)
+def do_analysis(data_path, task, threshold, token_num, remove_quality_list, remove_difficulty_list):
+    if task == "all":
+        language_list = language_split(data_path)
         for file_path in language_list:
-            token_count_file = token_count_split(file_path, args.token_num)
+            token_count_file = token_count_split(file_path, token_num)
             safety_file = safety_split(token_count_file)
-            quality_file = quality_split(safety_file, args.remove_quality_list)
-            difficulty_file = difficulty_split(quality_file, args.remove_difficulty_list)
-            reward_file = reward_split(difficulty_file, args.threshold)
+            quality_file = quality_split(safety_file, remove_quality_list)
+            difficulty_file = difficulty_split(quality_file, remove_difficulty_list)
+            reward_file = reward_split(difficulty_file, threshold)
+    elif task == "language":
+        language_split(data_path)
+    elif task == "reward":
+        reward_split(data_path, threshold)
+    elif task == "token_count":
+        token_count_split(data_path, token_num)
+    elif task == "safety":
+        safety_split(data_path)
+    elif task == "quality":
+        quality_split(data_path, remove_quality_list)
+    elif task == "difficulty":
+        difficulty_split(data_path, remove_difficulty_list)
     else:
         print("The task is not supported.")
-        sys.exit(1)
+
+
+def main():
+    # 判断data_path是文件夹还是文件
+    if os.path.isdir(args.file_path):
+        file_list = os.listdir(args.file_path)
+        for file in file_list:
+            if file.endswith(".jsonl"):
+                args.file_path = os.path.join(args.file_path, file)
+                do_analysis(args.file_path, args.task, args.threshold, args.token_num, args.remove_quality_list, args.remove_difficulty_list)
+
+    elif os.path.isfile(args.file_path):
+        do_analysis(args.file_path, args.task, args.threshold, args.token_num, args.remove_quality_list, args.remove_difficulty_list)
+
+    else:
+        print("The file path is not valid.")
 
 
 if __name__ == "__main__":
