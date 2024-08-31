@@ -34,7 +34,9 @@ def quality_distribution(data):
 
 def classification_distribution(data):
     classification_list = [item["classification"] for item in data]
-    classification_list = [item if item is not None else "None" for item in classification_list]
+    classification_list = [
+        item if item is not None else "None" for item in classification_list
+    ]
     classification_dict = {}
     for item in tqdm(classification_list):
         if item in classification_dict:
@@ -42,6 +44,7 @@ def classification_distribution(data):
         else:
             classification_dict[item] = 1
     return classification_dict
+
 
 def safety_distribution(data):
     safety_list = [item["safety"] for item in data]
@@ -52,6 +55,7 @@ def safety_distribution(data):
         else:
             safety_dict[item] = 1
     return safety_dict
+
 
 def reward_distribution(data):
     reward_list = [item["reward"] for item in data]
@@ -64,11 +68,12 @@ def reward_distribution(data):
     # 最小奖励值
     reward_diff_dict["min"] = min(reward_diff_list)
     # 奖励值分布
-    
+
     for item in reward_diff_list:
         reward_diff_dict[round(float(item))] += 1
 
     return reward_diff_dict
+
 
 def language_distribution(data):
     language_list = [item["language"] for item in data]
@@ -93,7 +98,9 @@ def token_count_distribution(data):
     for item in tqdm(token_count_list):
         for i in range(len(token_cound_range) - 1):
             if token_cound_range[i] <= item < token_cound_range[i + 1]:
-                token_count_dict[f"{token_cound_range[i]}-{token_cound_range[i + 1]}"] += 1
+                token_count_dict[
+                    f"{token_cound_range[i]}-{token_cound_range[i + 1]}"
+                ] += 1
                 break
         if item >= token_cound_range[-1]:
             token_count_dict[f"{token_cound_range[-1]}-"] += 1
@@ -104,7 +111,9 @@ def token_count_distribution(data):
 def analyze_data_distribution(data_path):
     # 判断data_path是文件夹还是文件
     if os.path.isdir(data_path):
-        data_path_list = [os.path.join(data_path, file) for file in os.listdir(data_path)]
+        data_path_list = [
+            os.path.join(data_path, file) for file in os.listdir(data_path)
+        ]
         data = []
         for file in data_path_list:
             with jsonlines.open(file) as reader:
