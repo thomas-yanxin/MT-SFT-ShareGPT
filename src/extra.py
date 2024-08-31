@@ -213,7 +213,7 @@ def difficulty_split(file_path, remove_difficulty_list):
     return output_path_difficulty
 
 
-def do_analysis(
+def do_extra(
     data_path, task, threshold, token_num, remove_quality_list, remove_difficulty_list
 ):
     if task == "all":
@@ -247,7 +247,7 @@ def main():
         for file in file_list:
             if file.endswith(".jsonl"):
                 args.file_path = os.path.join(args.file_path, file)
-                do_analysis(
+                do_extra(
                     args.file_path,
                     args.task,
                     args.threshold,
@@ -257,7 +257,7 @@ def main():
                 )
 
     elif os.path.isfile(args.file_path):
-        do_analysis(
+        do_extra(
             args.file_path,
             args.task,
             args.threshold,
