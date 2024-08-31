@@ -23,17 +23,7 @@ def get_args():
         "--task",
         type=str,
         default="all",
-        choices=[
-            "difficulty",
-            "quality",
-            "classification",
-            "safety",
-            "reward",
-            "language",
-            "token_count",
-            "all",
-        ],
-        help="The task type.",
+        help="The task type. You can choose from ['all', 'language', 'reward', 'token_count', 'safety', 'quality', 'difficulty'], or use ',' to separate multiple tasks.",
     )
     parser.add_argument(
         "--threshold",
@@ -216,6 +206,7 @@ def difficulty_split(file_path, remove_difficulty_list):
 def do_extra(
     data_path, task, threshold, token_num, remove_quality_list, remove_difficulty_list
 ):
+    data_path = []
     if task == "all":
         language_list = language_split(data_path)
         for file_path in language_list:
@@ -225,19 +216,30 @@ def do_extra(
             difficulty_file = difficulty_split(quality_file, remove_difficulty_list)
             reward_file = reward_split(difficulty_file, threshold)
     elif task == "language":
-        language_split(data_path)
+        language_list = language_split(data_path)
+        data_path.extend(language_list)
     elif task == "reward":
-        reward_split(data_path, threshold)
+        reward_file = reward_split(data_path, threshold)
+        data_path.append(reward_file)
+
     elif task == "token_count":
-        token_count_split(data_path, token_num)
+        token_count_file = token_count_split(data_path, token_num)
+        data_path.extend(token_count_file)
+
     elif task == "safety":
-        safety_split(data_path)
+        safety_file = safety_split(data_path)
+        data_path.append(safety_file)
     elif task == "quality":
-        quality_split(data_path, remove_quality_list)
+        quality_file = quality_split(data_path, remove_quality_list)
+        data_path.append(quality_file)
     elif task == "difficulty":
-        difficulty_split(data_path, remove_difficulty_list)
+        difficulty_file = difficulty_split(data_path, remove_difficulty_list)
+        data_path.append(difficulty_file)
+
     else:
         print("The task is not supported.")
+
+    return data_path
 
 
 def main():
@@ -247,24 +249,71 @@ def main():
         for file in file_list:
             if file.endswith(".jsonl"):
                 args.file_path = os.path.join(args.file_path, file)
-                do_extra(
-                    args.file_path,
-                    args.task,
-                    args.threshold,
-                    args.token_num,
-                    args.remove_quality_list,
-                    args.remove_difficulty_list,
-                )
+                if "," in args.task:
+                    task_list = args.task.split(",")
+                    for n, task in enumerate(task_list):
+                        if n == 0:
+                            data_path = do_extra(
+                                args.file_path,
+                                task,
+                                args.threshold,
+                                args.token_num,
+                                args.remove_quality_list,
+                                args.remove_difficulty_list,
+                            )
+                        else:
+                            for i in range(len(data_path)):
+                                data_path[i] = do_extra(
+                                    data_path[i],
+                                    task,
+                                    args.threshold,
+                                    args.token_num,
+                                    args.remove_quality_list,
+                                    args.remove_difficulty_list,
+                                )
+                else:
+                    do_extra(
+                        args.file_path,
+                        args.task,
+                        args.threshold,
+                        args.token_num,
+                        args.remove_quality_list,
+                        args.remove_difficulty_list,
+                    )
 
     elif os.path.isfile(args.file_path):
-        do_extra(
-            args.file_path,
-            args.task,
-            args.threshold,
-            args.token_num,
-            args.remove_quality_list,
-            args.remove_difficulty_list,
-        )
+        if "," in args.task:
+            task_list = args.task.split(",")
+            for n, task in enumerate(task_list):
+                if n == 0:
+                    data_path = do_extra(
+                        args.file_path,
+                        task,
+                        args.threshold,
+                        args.token_num,
+                        args.remove_quality_list,
+                        args.remove_difficulty_list,
+                    )
+                else:
+                    for i in range(len(data_path)):
+                        data_path[i] = do_extra(
+                            data_path[i],
+                            task,
+                            args.threshold,
+                            args.token_num,
+                            args.remove_quality_list,
+                            args.remove_difficulty_list,
+                        )
+
+        else:
+            do_extra(
+                args.file_path,
+                args.task,
+                args.threshold,
+                args.token_num,
+                args.remove_quality_list,
+                args.remove_difficulty_list,
+            )
 
     else:
         print("The file path is not valid.")
