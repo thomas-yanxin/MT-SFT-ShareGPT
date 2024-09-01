@@ -454,7 +454,7 @@ def refined_result(input_file, save_as):
                 "classification",
                 "quality",
                 "safety",
-                "reward",
+                "rewards",
                 "language",
                 "turns",
                 "token_count",
