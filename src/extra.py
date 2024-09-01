@@ -63,9 +63,9 @@ def language_split(file_path):
     language_zh = []
     language_other = []
     for item in data:
-        if item["language"] == "en":
+        if item["language"] == "EN":
             language_en.append(item)
-        elif item["language"] == "zh":
+        elif item["language"] == "ZH":
             language_zh.append(item)
         else:
             language_other.append(item)
@@ -204,36 +204,36 @@ def difficulty_split(file_path, remove_difficulty_list):
 
 
 def do_extra(
-    data_path, task, threshold, token_num, remove_quality_list, remove_difficulty_list
+    file_path, task, threshold, token_num, remove_quality_list, remove_difficulty_list
 ):
     data_path = []
     if task == "all":
-        language_list = language_split(data_path)
-        for file_path in language_list:
-            token_count_file = token_count_split(file_path, token_num)
+        language_list = language_split(file_path)
+        for file_ in language_list:
+            token_count_file = token_count_split(file_, token_num)
             safety_file = safety_split(token_count_file)
             quality_file = quality_split(safety_file, remove_quality_list)
             difficulty_file = difficulty_split(quality_file, remove_difficulty_list)
             reward_file = reward_split(difficulty_file, threshold)
     elif task == "language":
-        language_list = language_split(data_path)
+        language_list = language_split(file_path)
         data_path.extend(language_list)
     elif task == "reward":
-        reward_file = reward_split(data_path, threshold)
+        reward_file = reward_split(file_path, threshold)
         data_path.append(reward_file)
 
     elif task == "token_count":
-        token_count_file = token_count_split(data_path, token_num)
+        token_count_file = token_count_split(file_path, token_num)
         data_path.extend(token_count_file)
 
     elif task == "safety":
-        safety_file = safety_split(data_path)
+        safety_file = safety_split(file_path)
         data_path.append(safety_file)
     elif task == "quality":
-        quality_file = quality_split(data_path, remove_quality_list)
+        quality_file = quality_split(file_path, remove_quality_list)
         data_path.append(quality_file)
     elif task == "difficulty":
-        difficulty_file = difficulty_split(data_path, remove_difficulty_list)
+        difficulty_file = difficulty_split(file_path, remove_difficulty_list)
         data_path.append(difficulty_file)
 
     else:
