@@ -99,12 +99,12 @@ def reward_split(file_path, threshold):
         data = list(reader)
 
     # 根据reward的值按照绝对值大小进行排序
-    data = sorted(data, key=lambda x: abs(x["reward"]), reverse=True)
+    data = sorted(data, key=lambda x: abs(x["rewards"]), reverse=True)
     # 根据阈值划分数据
     reward_large = []
     reward_small = []
     for item in data:
-        if abs(item["reward"]) > threshold:
+        if abs(item["rewards"]) > threshold:
             reward_large.append(item)
         else:
             reward_small.append(item)
@@ -152,6 +152,8 @@ def safety_split(file_path):
     safety_high = []
     for item in data:
         if "unsafe" in item["safety"]:
+            pass
+        elif item["safety"] == "":
             pass
         else:
             safety_high.append(item)

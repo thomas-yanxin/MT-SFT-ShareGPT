@@ -58,7 +58,7 @@ def safety_distribution(data):
 
 
 def reward_distribution(data):
-    reward_list = [item["reward"] for item in data]
+    reward_list = [item["rewards"] for item in data]
     reward_diff_list = [abs(item) for item in reward_list]
     reward_diff_dict = {}
     # 平均奖励值
@@ -165,13 +165,13 @@ def analyze_data_distribution(data_path):
             plt.title("Safety Distribution")
             plt.savefig(f"./images/safety_distribution.png")
             plt.show()
-        elif key == "reward":
+        elif key == "rewards":
             reward_dict = reward_distribution(data)
-            print(f"Reward distribution: {reward_dict}")
+            print(f"Rewards distribution: {reward_dict}")
             plt.bar(reward_dict.keys(), reward_dict.values())
-            plt.xlabel("Reward")
+            plt.xlabel("Rewards")
             plt.ylabel("Count")
-            plt.title("Reward Distribution")
+            plt.title("Rewards Distribution")
             plt.savefig(f"./images/reward_distribution.png")
             plt.show()
         elif key == "language":
