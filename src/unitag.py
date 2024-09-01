@@ -431,7 +431,7 @@ def reward_tag(model, device, input_file, batch_size, save_as):
                 result = reward_model.get_scores(
                     reward_tokenizer, conversations_mapping(n["conversations"])
                 )
-                n["reward"] = str(result)
+                n["reward"] = result
                 jsonlines.Writer(out).write(n)
 
     output_file = (
@@ -464,7 +464,31 @@ def refined_result(input_file, save_as):
                 refined = {}
                 for key in key_list:
                     if key in line:
-                        refined[key] = line[key]
+                        if key == "difficulty":
+                            if line[key] in ["very easy", "easy", "medium", "hard", "very hard"]:
+                                refined[key] = line[key]
+                            else:
+                                refined[key] = "medium"
+                        elif key == "classification":    
+                            if line[key] in ["Information seeking", "Reasoning", "Planning", "Editing", "Coding & Debugging", "Math", "Role playing", "Data analysis", "Creative writing", "Advice seeking", "Brainstorming", "Others"]:
+                                refined[key] = line[key]
+                            else:
+                                refined[key] = "Others"
+                        elif key == "quality":
+                            # [very poor/poor/average/good/excellent]
+                            if line[key] in ["very poor", "poor", "average", "good", "excellent"]:
+                                refined[key] = line[key]
+                            else:
+                                refined[key] = "average"
+                        elif key == "safety":
+                            if line[key] in ["unsafe", "safe"]:
+                                refined[key] = line[key]
+                            else:
+                                refined[key] = "unsafe"
+                        elif key == "rewards":
+                            refined[key] = float(line[key])
+                        else:                        
+                            refined[key] = line[key]
                     else:
                         if key == "difficulty":
                             refined[key] = "medium"
@@ -475,7 +499,7 @@ def refined_result(input_file, save_as):
                         elif key == "safety":
                             refined[key] = "safe"
                         elif key == "rewards":
-                            refined[key] = "0"
+                            refined[key] = 0
                         elif key == "language":
                             refined[key] = None
                         elif key == "turns":

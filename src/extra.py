@@ -23,7 +23,7 @@ def get_args():
         "--task",
         type=str,
         default="all",
-        help="The task type. You can choose from ['all', 'language', 'reward', 'token_count', 'safety', 'quality', 'difficulty'], or use ',' to separate multiple tasks.",
+        help="The task type. You can choose from ['all', 'language', 'rewards', 'token_count', 'safety', 'quality', 'difficulty'], or use ',' to separate multiple tasks.",
     )
     parser.add_argument(
         "--threshold",
@@ -109,7 +109,7 @@ def reward_split(file_path, threshold):
         else:
             reward_small.append(item)
     output_path_small = (
-        file_path.split(os.path.splitext(file_path)[-1])[0] + "_reward.jsonl"
+        file_path.split(os.path.splitext(file_path)[-1])[0] + "_rewards.jsonl"
     )
     with jsonlines.open(output_path_small, mode="w") as writer:
         for item in tqdm(reward_small):
@@ -220,7 +220,7 @@ def do_extra(
     elif task == "language":
         language_list = language_split(file_path)
         data_path.extend(language_list)
-    elif task == "reward":
+    elif task == "rewards":
         reward_file = reward_split(file_path, threshold)
         data_path.append(reward_file)
 

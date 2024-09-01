@@ -59,7 +59,7 @@ def safety_distribution(data):
 
 def reward_distribution(data):
     reward_list = [item["rewards"] for item in data]
-    reward_diff_list = [abs(item) for item in reward_list]
+    reward_diff_list = [abs(float(item)) for item in reward_list]
     reward_diff_dict = {}
     # 平均奖励值
     reward_diff_dict["average"] = sum(reward_diff_list) / len(reward_diff_list)
@@ -67,10 +67,6 @@ def reward_distribution(data):
     reward_diff_dict["max"] = max(reward_diff_list)
     # 最小奖励值
     reward_diff_dict["min"] = min(reward_diff_list)
-    # 奖励值分布
-
-    for item in reward_diff_list:
-        reward_diff_dict[round(float(item))] += 1
 
     return reward_diff_dict
 
