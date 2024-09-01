@@ -298,9 +298,9 @@ def language_detection_turns(input_file):
             for i in n["conversations"]:
                 text += i["value"]
             if n["conversations"][0]["from"] == "system":
-                turns = len(n["conversations"][1:])
+                turns = round((len(n["conversations"][1:])) / 2 )
             else:
-                turns = len(n["conversations"])
+                turns = round((len(n["conversations"])) / 2 ) 
             try:
                 lang = detector.detect_language_of(text).iso_code_639_1.name
             except:
