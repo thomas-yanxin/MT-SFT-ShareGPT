@@ -474,7 +474,7 @@ def refined_result(input_file, save_as):
                             refined[key] = "average"
                         elif key == "safety":
                             refined[key] = "safe"
-                        elif key == "reward":
+                        elif key == "rewards":
                             refined[key] = "0"
                         elif key == "language":
                             refined[key] = None
