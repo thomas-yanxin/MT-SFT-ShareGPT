@@ -28,7 +28,7 @@ def get_args():
     parser.add_argument(
         "--threshold",
         type=float,
-        default=0.5,
+        default=1,
         help="The threshold value for the reward.",
     )
     parser.add_argument(
@@ -99,12 +99,12 @@ def reward_split(file_path, threshold):
         data = list(reader)
 
     # 根据reward的值按照绝对值大小进行排序
-    data = sorted(data, key=lambda x: abs(x["rewards"]), reverse=True)
+    data = sorted(data, key=lambda x: abs(float(x["rewards"])), reverse=True)
     # 根据阈值划分数据
     reward_large = []
     reward_small = []
     for item in data:
-        if abs(item["rewards"]) > threshold:
+        if abs(float(item["rewards"])) > threshold:
             reward_large.append(item)
         else:
             reward_small.append(item)

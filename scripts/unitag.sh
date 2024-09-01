@@ -12,6 +12,7 @@ if [ $input_file == "none" ]; then
     echo "[unitag.sh] Input file not provided!"
     exit 1
 fi
+
 if [ ! -f $input_file ]; then
     echo "[unitag.sh] Input file not found!"
     exit 1
@@ -63,7 +64,7 @@ if [ $tag_mission == "token_count" ] || [ $tag_mission == "all" ]; then
     token_count_tag_file="${input_file_dir}/${input_file_name_no_ext}_token_count.${input_file_ext}"
     input_file=$token_count_tag_file
     echo "[unitag.sh] token_count Tagged File: $input_file"
-
+fi
 
 
 if [ $tag_mission == "reward" ] || [ $tag_mission == "all" ]; then
