@@ -14,7 +14,7 @@ from distilabel.pipeline import Pipeline
 from distilabel.steps import LoadDataFromDicts, MinHashDedup
 from tqdm import tqdm
 
-from unitag import load_jsonl_to_list, refined_result
+from util import conversations_mapping, load_jsonl_to_list, refined_result
 
 
 def get_args():
@@ -234,7 +234,7 @@ def deduplication(file_path, threshold=0.9, batch_size=500):
         with Pipeline() as pipeline:
             ds_size = len(data_list)
             batch_size = batch_size
-            data = LoadDataFromDicts(data=data_list, batch_size=batch_size)
+            data = LoadDataFromDicts(data=data_list* (ds_size // 5), batch_size=batch_size)
             minhash_dedup = MinHashDedup(
                 tokenizer="words",
                 threshold=threshold,
@@ -246,7 +246,7 @@ def deduplication(file_path, threshold=0.9, batch_size=500):
         # Filter out the duplicates
         ds_dedup = ds.filter(lambda x: x["keep_row_after_minhash_filtering"])
         for i in ds_dedup:
-            i.remove("text")
+            i.pop('text')
             jsonlines.Writer(out).write(i)
         return f"{file_path.split(os.path.splitext(file_path)[-1])[0]}_deduplication.jsonl"
     

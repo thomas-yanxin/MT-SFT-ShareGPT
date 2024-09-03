@@ -17,8 +17,9 @@ from vllm import LLM, SamplingParams
 from vllm.distributed.parallel_state import (destroy_distributed_environment,
                                              destroy_model_parallel)
 
-from prompt import (Classification, Difficulty, Quality, input_classification,
-                    input_difficulty_rating, input_quality_rating)
+from util import (Classification, Difficulty, Quality, conversations_mapping,
+                  input_classification, input_difficulty_rating,
+                  input_quality_rating, load_jsonl_to_list, refined_result)
 
 os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 detector = LanguageDetectorBuilder.from_all_languages().build()
@@ -78,8 +79,6 @@ def get_args():
         choices=["jsonl"],
         help="Save the generated responses as a what kind of file",
     )
-    
-    
 
     # vllm Configs
     parser.add_argument("--device", type=str, default="0")
@@ -126,18 +125,6 @@ def set_schema(tag_mission):
             output_message = "input_quality"
 
     return schema, input_rating, error_message, output_message
-
-
-def load_jsonl_to_list(jsonl_file_path):
-    data_list = []
-    with open(jsonl_file_path, "r", encoding="utf8") as file:
-        for line in jsonlines.Reader(file):
-            text = ""
-            for i in line["conversations"]:
-                text += i["value"] + " "
-            line["text"] = text
-            data_list.append(line)
-    return data_list
 
 
 def gen_llm(
@@ -278,20 +265,6 @@ def token_count(input_file, model):
     return output_file
 
 
-def conversations_mapping(conversations):
-    # 将ShareGPT转chatml格式
-    chatml = []
-    for i in conversations:
-        if "system" in i["from"]:
-            chatml.append({"role": "system", "content": i["value"]})
-        else:
-            if "human" in i["from"]:
-                chatml.append({"role": "user", "content": i["value"]})
-            elif "gpt" in i["from"]:
-                chatml.append({"role": "assistant", "content": i["value"]})
-    return chatml
-
-
 def language_detection_turns(input_file):
     print("Detecting language and turns...")
 
@@ -306,9 +279,9 @@ def language_detection_turns(input_file):
             for i in n["conversations"]:
                 text += i["value"]
             if n["conversations"][0]["from"] == "system":
-                turns = round((len(n["conversations"][1:])) / 2 )
+                turns = round((len(n["conversations"][1:])) / 2)
             else:
-                turns = round((len(n["conversations"])) / 2 ) 
+                turns = round((len(n["conversations"])) / 2)
             try:
                 lang = detector.detect_language_of(text).iso_code_639_1.name
             except:
@@ -447,81 +420,6 @@ def reward_tag(model, device, input_file, batch_size, save_as):
     )
     return output_file
 
-
-def refined_result(input_file, save_as):
-    with open(
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_refined.{save_as}",
-        "a+",
-        encoding="utf8",
-    ) as out:
-        with open(input_file, "r", encoding="utf8") as file:
-            key_list = [
-                "id",
-                "conversations",
-                "difficulty",
-                "classification",
-                "quality",
-                "safety",
-                "rewards",
-                "language",
-                "turns",
-                "token_count",
-                "source",
-            ]
-            for line in jsonlines.Reader(file):
-                refined = {}
-                for key in key_list:
-                    if key in line:
-                        if key == "difficulty":
-                            if line[key] in ["very easy", "easy", "medium", "hard", "very hard"]:
-                                refined[key] = line[key]
-                            else:
-                                refined[key] = "medium"
-                        elif key == "classification":    
-                            if line[key] in ["Information seeking", "Reasoning", "Planning", "Editing", "Coding & Debugging", "Math", "Role playing", "Data analysis", "Creative writing", "Advice seeking", "Brainstorming", "Others"]:
-                                refined[key] = line[key]
-                            else:
-                                refined[key] = "Others"
-                        elif key == "quality":
-                            # [very poor/poor/average/good/excellent]
-                            if line[key] in ["very poor", "poor", "average", "good", "excellent"]:
-                                refined[key] = line[key]
-                            else:
-                                refined[key] = "average"
-                        elif key == "safety":
-                            if line[key] in ["unsafe", "safe"]:
-                                refined[key] = line[key]
-                            else:
-                                refined[key] = "unsafe"
-                        elif key == "rewards":
-                            refined[key] = float(line[key])
-                        else:                        
-                            refined[key] = line[key]
-                    else:
-                        if key == "difficulty":
-                            refined[key] = "medium"
-                        elif key == "classification":
-                            refined[key] = "Others"
-                        elif key == "quality":
-                            refined[key] = "average"
-                        elif key == "safety":
-                            refined[key] = "safe"
-                        elif key == "rewards":
-                            refined[key] = 0
-                        elif key == "language":
-                            refined[key] = None
-                        elif key == "turns":
-                            refined[key] = 1
-                        elif key == "token_count":
-                            refined[key] = 0
-                        elif key == "source":
-                            refined[key] = "None"
-                jsonlines.Writer(out).write(refined)
-
-    output_file = (
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_refined.{save_as}"
-    )
-    return output_file
 
 
 def main():
