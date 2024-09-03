@@ -428,7 +428,7 @@ def reward_tag(model, device, input_file, batch_size, save_as):
 
                 jsonlines.Writer(out).write(n)
             else:
-                result = reward_model.get_scores(
+                result = reward_model.get_score(
                     reward_tokenizer, conversations_mapping(n["conversations"])
                 )
                 n["reward"] = result
