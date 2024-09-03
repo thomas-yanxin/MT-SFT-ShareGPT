@@ -40,14 +40,14 @@ def get_args():
     parser.add_argument(
         "--remove_quality_list",
         type=list,
-        default=["low"],
-        help="The quality list to be removed. ['low', 'medium', 'high', 'very high']",
+        default="very poor",
+        help="The quality list to be removed. 'very poor', 'poor', 'low', 'medium', 'high', 'very high'.",
     )
     parser.add_argument(
         "--remove_difficulty_list",
         type=list,
-        default=["very easy", "easy"],
-        help="The difficulty list to be removed.",
+        default="very easy,easy",
+        help="The difficulty list to be removed. 'very easy', 'easy', 'medium', 'hard', 'very hard'.",
     )
 
     return parser.parse_args()
@@ -168,6 +168,7 @@ def safety_split(file_path):
 
 
 def quality_split(file_path, remove_quality_list):
+    remove_quality_list = remove_quality_list.split(",")
     with jsonlines.open(file_path) as reader:
         data = list(reader)
     quality_high = []
@@ -187,6 +188,7 @@ def quality_split(file_path, remove_quality_list):
 
 
 def difficulty_split(file_path, remove_difficulty_list):
+    remove_difficulty_list = remove_difficulty_list.split(",")
     with jsonlines.open(file_path) as reader:
         data = list(reader)
     difficulty_high = []
