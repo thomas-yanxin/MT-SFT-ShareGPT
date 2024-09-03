@@ -6,6 +6,8 @@ import os
 import jsonlines
 import torch
 from distilabel.llms import OpenAILLM, vLLM
+from distilabel.pipeline import Pipeline
+from distilabel.steps import LoadDataFromDicts, MinHashDedup
 from distilabel.steps.tasks import MagpieGenerator
 from lingua import Language, LanguageDetectorBuilder
 from pydantic import BaseModel
@@ -76,6 +78,8 @@ def get_args():
         choices=["jsonl"],
         help="Save the generated responses as a what kind of file",
     )
+    
+    
 
     # vllm Configs
     parser.add_argument("--device", type=str, default="0")
@@ -128,6 +132,10 @@ def load_jsonl_to_list(jsonl_file_path):
     data_list = []
     with open(jsonl_file_path, "r", encoding="utf8") as file:
         for line in jsonlines.Reader(file):
+            text = ""
+            for i in line["conversations"]:
+                text += i["value"] + " "
+            line["text"] = text
             data_list.append(line)
     return data_list
 

@@ -10,7 +10,11 @@ import jsonlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from distilabel.pipeline import Pipeline
+from distilabel.steps import LoadDataFromDicts, MinHashDedup
 from tqdm import tqdm
+
+from unitag import load_jsonl_to_list, refined_result
 
 
 def get_args():
@@ -23,13 +27,25 @@ def get_args():
         "--task",
         type=str,
         default="all",
-        help="The task type. You can choose from ['all', 'language', 'rewards', 'token_count', 'safety', 'quality', 'difficulty'], or use ',' to separate multiple tasks.",
+        help="The task type. You can choose from ['all', 'language', 'rewards', 'token_count', 'safety', 'quality', 'difficulty', 'deduplication'], or use ',' to separate multiple tasks.",
     )
     parser.add_argument(
-        "--threshold",
+        "--rewards_threshold",
         type=float,
         default=1,
         help="The threshold value for the reward.",
+    )
+    parser.add_argument(
+        "--deduplication_threshold",
+        type=float,
+        default=0.9,
+        help="The threshold value for the deduplication.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=500,
+        help="The batch size for the deduplication.",
     )
     parser.add_argument(
         "--token_num",
@@ -49,6 +65,7 @@ def get_args():
         default="very easy,easy",
         help="The difficulty list to be removed. 'very easy', 'easy', 'medium', 'hard', 'very hard'.",
     )
+    
 
     return parser.parse_args()
 
@@ -207,8 +224,36 @@ def difficulty_split(file_path, remove_difficulty_list):
     return output_path_difficulty
 
 
+def deduplication(file_path, threshold=0.9, batch_size=500):
+    with open(
+        f"{file_path.split(os.path.splitext(file_path)[-1])[0]}_deduplication.jsonl",
+        "a+",
+        encoding="utf8",
+    ) as out:
+        data_list = load_jsonl_to_list(file_path)      
+        with Pipeline() as pipeline:
+            ds_size = len(data_list)
+            batch_size = batch_size
+            data = LoadDataFromDicts(data=data_list, batch_size=batch_size)
+            minhash_dedup = MinHashDedup(
+                tokenizer="words",
+                threshold=threshold,
+                storage="dict",
+            )
+            data >> minhash_dedup
+        distiset = pipeline.run(use_cache=False)
+        ds = distiset["default"]["train"]
+        # Filter out the duplicates
+        ds_dedup = ds.filter(lambda x: x["keep_row_after_minhash_filtering"])
+        for i in ds_dedup:
+            i.remove("text")
+            jsonlines.Writer(out).write(i)
+        return f"{file_path.split(os.path.splitext(file_path)[-1])[0]}_deduplication.jsonl"
+    
+
+
 def do_extra(
-    file_path, task, threshold, token_num, remove_quality_list, remove_difficulty_list
+    file_path, task, rewards_threshold, token_num, remove_quality_list, remove_difficulty_list, deduplication_threshold, batch_size
 ):
     data_path = []
     if task == "all":
@@ -218,12 +263,15 @@ def do_extra(
             safety_file = safety_split(token_count_file)
             quality_file = quality_split(safety_file, remove_quality_list)
             difficulty_file = difficulty_split(quality_file, remove_difficulty_list)
-            reward_file = reward_split(difficulty_file, threshold)
+            reward_file = reward_split(difficulty_file, rewards_threshold)
+            deduplication_file = deduplication(reward_file, deduplication_threshold, batch_size)
+            
+            
     elif task == "language":
         language_list = language_split(file_path)
         data_path.extend(language_list)
     elif task == "rewards":
-        reward_file = reward_split(file_path, threshold)
+        reward_file = reward_split(file_path, rewards_threshold)
         data_path.append(reward_file)
 
     elif task == "token_count":
@@ -239,6 +287,9 @@ def do_extra(
     elif task == "difficulty":
         difficulty_file = difficulty_split(file_path, remove_difficulty_list)
         data_path.append(difficulty_file)
+    elif task == "deduplication":
+        deduplication_file = deduplication(file_path, deduplication_threshold, batch_size)
+        data_path.append(deduplication_file)
 
     else:
         print("The task is not supported.")
@@ -260,29 +311,35 @@ def main():
                             data_path = do_extra(
                                 args.file_path,
                                 task,
-                                args.threshold,
+                                args.rewards_threshold,
                                 args.token_num,
                                 args.remove_quality_list,
                                 args.remove_difficulty_list,
+                                args.deduplication_threshold,
+                                args.batch_size,
                             )
                         else:
                             for i in range(len(data_path)):
                                 data_path[i] = do_extra(
                                     data_path[i],
                                     task,
-                                    args.threshold,
+                                    args.rewards_threshold,
                                     args.token_num,
                                     args.remove_quality_list,
                                     args.remove_difficulty_list,
+                                    args.deduplication_threshold,
+                                    args.batch_size,
                                 )
                 else:
                     do_extra(
                         args.file_path,
                         args.task,
-                        args.threshold,
+                        args.rewards_threshold,
                         args.token_num,
                         args.remove_quality_list,
                         args.remove_difficulty_list,
+                        args.deduplication_threshold,
+                        args.batch_size,
                     )
 
     elif os.path.isfile(args.file_path):
@@ -293,30 +350,36 @@ def main():
                     data_path = do_extra(
                         args.file_path,
                         task,
-                        args.threshold,
+                        args.rewards_threshold,
                         args.token_num,
                         args.remove_quality_list,
                         args.remove_difficulty_list,
+                        args.deduplication_threshold,
+                        args.batch_size,
                     )
                 else:
                     for i in range(len(data_path)):
                         data_path[i] = do_extra(
                             data_path[i],
                             task,
-                            args.threshold,
+                            args.rewards_threshold,
                             args.token_num,
                             args.remove_quality_list,
                             args.remove_difficulty_list,
+                            args.deduplication_threshold,
+                            args.batch_size,
                         )
 
         else:
             do_extra(
                 args.file_path,
                 args.task,
-                args.threshold,
+                args.rewards_threshold,
                 args.token_num,
                 args.remove_quality_list,
                 args.remove_difficulty_list,
+                args.deduplication_threshold,
+                args.batch_size,
             )
 
     else:
