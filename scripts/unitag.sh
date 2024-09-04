@@ -12,7 +12,6 @@ if [ $input_file == "none" ]; then
     echo "[unitag.sh] Input file not provided!"
     exit 1
 fi
-
 if [ ! -f $input_file ]; then
     echo "[unitag.sh] Input file not found!"
     exit 1

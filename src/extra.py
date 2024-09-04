@@ -232,9 +232,8 @@ def deduplication(file_path, threshold=0.9, batch_size=500):
     ) as out:
         data_list = load_jsonl_to_list(file_path)      
         with Pipeline() as pipeline:
-            ds_size = len(data_list)
             batch_size = batch_size
-            data = LoadDataFromDicts(data=data_list* (ds_size // 5), batch_size=batch_size)
+            data = LoadDataFromDicts(data=data_list, batch_size=batch_size)
             minhash_dedup = MinHashDedup(
                 tokenizer="words",
                 threshold=threshold,

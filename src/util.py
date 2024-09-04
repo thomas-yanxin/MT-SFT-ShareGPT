@@ -4,6 +4,7 @@ import sys
 
 import jsonlines
 from pydantic import BaseModel
+from tqdm import tqdm
 
 
 def conversations_mapping(conversations):
