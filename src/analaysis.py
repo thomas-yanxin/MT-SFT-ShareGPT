@@ -8,184 +8,103 @@ from tqdm import tqdm
 
 
 def difficulty_distribution(data):
-    difficulty_list = [item["difficulty"] for item in data]
-    # 替换列表中的None值
-    difficulty_list = [item if item is not None else "None" for item in difficulty_list]
-    difficulty_dict = {}
-    for item in tqdm(difficulty_list):
-        if item in difficulty_dict:
-            difficulty_dict[item] += 1
-        else:
-            difficulty_dict[item] = 1
-    return difficulty_dict
+    difficulty_list = [item.get("difficulty", "None") for item in data]
+    return {difficulty: difficulty_list.count(difficulty) for difficulty in set(difficulty_list)}
 
 
 def quality_distribution(data):
-    quality_list = [item["quality"] for item in data]
-    quality_list = [item if item is not None else "None" for item in quality_list]
-    quality_dict = {}
-    for item in tqdm(quality_list):
-        if item in quality_dict:
-            quality_dict[item] += 1
-        else:
-            quality_dict[item] = 1
-    return quality_dict
+    quality_list = [item.get("quality", "None") for item in data]
+    return {quality: quality_list.count(quality) for quality in set(quality_list)}
 
 
 def classification_distribution(data):
-    classification_list = [item["classification"] for item in data]
-    classification_list = [
-        item if item is not None else "None" for item in classification_list
-    ]
-    classification_dict = {}
-    for item in tqdm(classification_list):
-        if item in classification_dict:
-            classification_dict[item] += 1
-        else:
-            classification_dict[item] = 1
-    return classification_dict
+    classification_list = [item.get("classification", "None") for item in data]
+    return {cls: classification_list.count(cls) for cls in set(classification_list)}
 
 
 def safety_distribution(data):
     safety_list = [item["safety"] for item in data]
-    safety_dict = {}
-    for item in tqdm(safety_list):
-        if item in safety_dict:
-            safety_dict[item] += 1
-        else:
-            safety_dict[item] = 1
-    return safety_dict
+    return {safety: safety_list.count(safety) for safety in set(safety_list)}
 
 
 def reward_distribution(data):
-    reward_list = [item["rewards"] for item in data]
-    reward_diff_list = [abs(float(item)) for item in reward_list]
-    reward_diff_dict = {}
-    # 平均奖励值
-    reward_diff_dict["average"] = sum(reward_diff_list) / len(reward_diff_list)
-    # 最大奖励值
-    reward_diff_dict["max"] = max(reward_diff_list)
-    # 最小奖励值
-    reward_diff_dict["min"] = min(reward_diff_list)
-
-    return reward_diff_dict
+    rewards = [abs(float(item["rewards"])) for item in data]
+    return {
+        "average": sum(rewards) / len(rewards),
+        "max": max(rewards),
+        "min": min(rewards)
+    }
 
 
 def language_distribution(data):
-    language_list = [item["language"] for item in data]
-    language_dict = {}
-    for item in tqdm(language_list):
-        if item == "EN":
-            language_dict["EN"] = language_dict.get("EN", 0) + 1
-        elif item == "ZH":
-            language_dict["ZH"] = language_dict.get("ZH", 0) + 1
-        else:
-            language_dict["OTHER"] = language_dict.get("OTHER", 0) + 1
-    return language_dict
+    languages = [item["language"] for item in data]
+    return {
+        "EN": languages.count("EN"),
+        "ZH": languages.count("ZH"),
+        "OTHER": len(languages) - languages.count("EN") - languages.count("ZH")
+    }
 
 
 def token_count_distribution(data):
-    token_count_list = [item["token_count"] for item in data]
-    token_count_dict = {}
-    token_cound_range = [0, 128, 256, 512, 1024, 2048, 4096, 8192]
-    for i in range(len(token_cound_range) - 1):
-        token_count_dict[f"{token_cound_range[i]}-{token_cound_range[i + 1]}"] = 0
-    token_count_dict[f"{token_cound_range[-1]}-"] = 0
-    for item in tqdm(token_count_list):
-        for i in range(len(token_cound_range) - 1):
-            if token_cound_range[i] <= item < token_cound_range[i + 1]:
-                token_count_dict[
-                    f"{token_cound_range[i]}-{token_cound_range[i + 1]}"
-                ] += 1
+    ranges = [0, 128, 256, 512, 1024, 2048, 4096, 8192]
+    distribution = {f"{ranges[i]}-{ranges[i+1]}": 0 for i in range(len(ranges)-1)}
+    distribution[f"{ranges[-1]}-"] = 0
+
+    for count in tqdm([item["token_count"] for item in data]):
+        for i, upper in enumerate(ranges[1:], 1):
+            if count < upper:
+                distribution[f"{ranges[i-1]}-{upper}"] += 1
                 break
-        if item >= token_cound_range[-1]:
-            token_count_dict[f"{token_cound_range[-1]}-"] += 1
-    return token_count_dict
+        else:
+            distribution[f"{ranges[-1]}-"] += 1
+
+    return distribution
 
 
 ## 分析数据各个维度的分布
 def analyze_data_distribution(data_path):
-    # 判断data_path是文件夹还是文件
+    # 读取数据
+    data = []
     if os.path.isdir(data_path):
-        data_path_list = [
-            os.path.join(data_path, file) for file in os.listdir(data_path)
-        ]
-        data = []
-        for file in data_path_list:
-            with jsonlines.open(file) as reader:
+        for file in os.listdir(data_path):
+            with jsonlines.open(os.path.join(data_path, file)) as reader:
                 data.extend(list(reader))
     else:
         with jsonlines.open(data_path) as reader:
             data = list(reader)
-    print(f"Number of data samples: {len(data)}")
-    print(f"Example data: {data[0]}")
-    key_list = [key for key in data[0].keys()]
-    # ["difficulty", "quality", "classification", "safety", "reward", "language", "token_count"]
-    # 分析并画图，存进./images文件夹
-    if not os.path.exists("./images"):
-        os.mkdir("./images")
-    for key in key_list:
-        if key == "difficulty":
-            difficulty_dict = difficulty_distribution(data)
-            print(f"Difficulty distribution: {difficulty_dict}")
-            plt.bar(difficulty_dict.keys(), difficulty_dict.values())
-            plt.xlabel("Difficulty")
-            plt.ylabel("Count")
-            plt.title("Difficulty Distribution")
-            plt.savefig(f"./images/difficulty_distribution.png")
-            plt.show()
-        elif key == "quality":
-            quality_dict = quality_distribution(data)
-            print(f"Quality distribution: {quality_dict}")
-            plt.bar(quality_dict.keys(), quality_dict.values())
-            plt.xlabel("Quality")
-            plt.ylabel("Count")
-            plt.title("Quality Distribution")
-            plt.savefig(f"./images/quality_distribution.png")
-            plt.show()
-        elif key == "classification":
-            classification_dict = classification_distribution(data)
-            print(f"Classification distribution: {classification_dict}")
-            plt.bar(classification_dict.keys(), classification_dict.values())
-            plt.xlabel("Classification")
-            plt.ylabel("Count")
-            plt.title("Classification Distribution")
-            plt.savefig(f"./images/classification_distribution.png")
-            plt.show()
-        elif key == "safety":
-            safety_dict = safety_distribution(data)
-            print(f"Safety distribution: {safety_dict}")
-            plt.bar(safety_dict.keys(), safety_dict.values())
-            plt.xlabel("Safety")
-            plt.ylabel("Count")
-            plt.title("Safety Distribution")
-            plt.savefig(f"./images/safety_distribution.png")
-            plt.show()
-        elif key == "rewards":
-            reward_dict = reward_distribution(data)
-            print(f"Rewards distribution: {reward_dict}")
-            plt.bar(reward_dict.keys(), reward_dict.values())
-            plt.xlabel("Rewards")
-            plt.ylabel("Count")
-            plt.title("Rewards Distribution")
-            plt.savefig(f"./images/reward_distribution.png")
-            plt.show()
-        elif key == "language":
-            language_dict = language_distribution(data)
-            print(f"Language distribution: {language_dict}")
-            plt.bar(language_dict.keys(), language_dict.values())
-            plt.xlabel("Language")
-            plt.ylabel("Count")
-            plt.title("Language Distribution")
-            plt.savefig(f"./images/language_distribution.png")
-            plt.show()
-        elif key == "token_count":
-            token_count_dict = token_count_distribution(data)
-            print(f"Token count distribution: {token_count_dict}")
-            plt.bar(token_count_dict.keys(), token_count_dict.values())
-            plt.xlabel("Token Count")
-            plt.ylabel("Count")
-            plt.title("Token Count Distribution")
+    
+    print(f"数据样本数量: {len(data)}")
+    print(f"示例数据: {data[0]}")
+    
+    # 创建图像保存目录
+    os.makedirs("./images", exist_ok=True)
+    
+    # 定义分析函数字典
+    analysis_functions = {
+        "difficulty": difficulty_distribution,
+        "quality": quality_distribution,
+        "classification": classification_distribution,
+        "safety": safety_distribution,
+        "rewards": reward_distribution,
+        "language": language_distribution,
+        "token_count": token_count_distribution
+    }
+    
+    # 遍历每个维度进行分析和绘图
+    for key, func in analysis_functions.items():
+        if key in data[0]:
+            distribution = func(data)
+            print(f"{key}分布: {distribution}")
+            
+            plt.figure(figsize=(10, 6))
+            plt.bar(distribution.keys(), distribution.values())
+            plt.xlabel(key)
+            plt.ylabel("数量")
+            plt.title(f"{key}分布")
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            plt.savefig(f"./images/{key}_distribution.png")
+            plt.close()
 
 
 if __name__ == "__main__":

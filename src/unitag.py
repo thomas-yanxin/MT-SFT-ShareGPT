@@ -107,48 +107,24 @@ args = get_args()
 
 
 def set_schema(tag_mission):
-    if tag_mission in ["difficulty", "classification", "quality"]:
-        if tag_mission == "difficulty":
-            schema = Difficulty
-            input_rating = input_difficulty_rating
-            error_message = "medium"
-            output_message = "difficulty"
-        elif tag_mission == "classification":
-            schema = Classification
-            input_rating = input_classification
-            error_message = "Others"
-            output_message = "primary_tag"
-        elif tag_mission == "quality":
-            schema = Quality
-            input_rating = input_quality_rating
-            error_message = "average"
-            output_message = "input_quality"
-
-    return schema, input_rating, error_message, output_message
+    schema_map = {
+        "difficulty": (Difficulty, input_difficulty_rating, "medium", "difficulty"),
+        "classification": (Classification, input_classification, "Others", "primary_tag"),
+        "quality": (Quality, input_quality_rating, "average", "input_quality")
+    }
+    
+    return schema_map.get(tag_mission, (None, None, None, None))
 
 
-def gen_llm(
-    device,
-    model,
-    tag_mission,
-    max_tokens,
-    temperature,
-    repetition_penalty,
-    gpu_memory_utilization=0.95,
-):
-    if "," in device:
-        cuda_devices = [int(d) for d in device.split(",")]
-    else:
-        cuda_devices = [int(device)]
-
-    tensor_parallel_size = len(cuda_devices)
-
-    llm = vLLM(
+def gen_llm(device, model, tag_mission, max_tokens, temperature, repetition_penalty, gpu_memory_utilization=0.95):
+    cuda_devices = [int(d) for d in device.split(",")] if "," in device else [int(device)]
+    
+    return vLLM(
         cuda_devices=cuda_devices,
         model=model,
         structured_output={"format": "json", "schema": set_schema(tag_mission)[0]},
         extra_kwargs={
-            "tensor_parallel_size": tensor_parallel_size,
+            "tensor_parallel_size": len(cuda_devices),
             "distributed_executor_backend": "ray",
         },
         generation_kwargs={
@@ -158,7 +134,6 @@ def gen_llm(
             "gpu_memory_utilization": gpu_memory_utilization,
         },
     )
-    return llm
 
 
 def generate_tags(
@@ -173,292 +148,182 @@ def generate_tags(
     save_as,
     gpu_memory_utilization=0.95,
 ):
-    print("Generating {tag_mission} tags...".format(tag_mission=tag_mission))
+    print(f"正在生成{tag_mission}标签...")
 
     llm = gen_llm(
-        device,
-        model,
-        tag_mission,
-        max_tokens,
-        temperature,
-        repetition_penalty,
-        gpu_memory_utilization,
+        device, model, tag_mission, max_tokens, temperature, 
+        repetition_penalty, gpu_memory_utilization
     )
     llm.load()
 
-    with open(
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_{tag_mission}.{save_as}",
-        "a+",
-        encoding="utf8",
-    ) as out:
+    output_file = f"{os.path.splitext(input_file)[0]}_{tag_mission}.{save_as}"
+    schema = set_schema(tag_mission)
+    input_rating, default_value, result_key = schema[1], schema[2], schema[3]
 
-        input_rating = set_schema(tag_mission)[1]
+    with jsonlines.open(output_file, mode='w') as writer:
         data_list = load_jsonl_to_list(input_file)
-        for i in tqdm(range(0, len(data_list), batch_size)):
-            all_batch = data_list[i : i + batch_size]
-
-            after_batch = []
-            for batch in all_batch:
-                if "system" in batch["conversations"][0]["from"]:
-                    after_batch.append(
-                        [
-                            {
-                                "role": "user",
-                                "content": input_rating(
-                                    batch["conversations"][1]["value"]
-                                ),
-                            },
-                        ]
-                    )
-                else:
-                    after_batch.append(
-                        [
-                            {
-                                "role": "user",
-                                "content": input_rating(
-                                    batch["conversations"][0]["value"]
-                                ),
-                            },
-                        ]
-                    )
-
-            result = llm.generate(after_batch)
-            for num, res in enumerate(zip(all_batch, result)):
+        for batch in tqdm([data_list[i:i+batch_size] for i in range(0, len(data_list), batch_size)]):
+            prompts = [
+                [{"role": "user", "content": input_rating(item["conversations"][1 if item["conversations"][0]["from"] == "system" else 0]["value"])}]
+                for item in batch
+            ]
+            
+            results = llm.generate(prompts)
+            
+            for item, result in zip(batch, results):
                 try:
-                    data = json.loads(res[1][0])
-                    all_batch[num][tag_mission] = data[set_schema(tag_mission)[3]]
+                    item[tag_mission] = json.loads(result[0])[result_key]
                 except:
-                    all_batch[num][tag_mission] = set_schema(tag_mission)[2]
-                jsonlines.Writer(out).write(all_batch[num])
-
-    output_file = f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_{tag_mission}.{save_as}"
+                    item[tag_mission] = default_value
+                writer.write(item)
 
     return output_file
 
 
 def token_count(input_file, model):
-    print("Calculating token count...")
+    print("计算token数量...")
     tokenizer = AutoTokenizer.from_pretrained(model)
+    output_file = f"{os.path.splitext(input_file)[0]}_token_count.jsonl"
 
-    with open(
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_token_count.jsonl",
-        "a+",
-        encoding="utf8",
-    ) as out:
-        data_list = load_jsonl_to_list(input_file)
-        for i, n in tqdm(enumerate(data_list)):
-
-            text_ = tokenizer.apply_chat_template(
-                conversations_mapping(n["conversations"]),
+    with jsonlines.open(output_file, mode='w') as writer:
+        for item in tqdm(load_jsonl_to_list(input_file)):
+            text = tokenizer.apply_chat_template(
+                conversations_mapping(item["conversations"]),
                 tokenize=False,
-                add_generation_prompt=True,
+                add_generation_prompt=True
             )
-            # 计算text的token数量
-            token_count = len(tokenizer.encode(text_))
-            n["token_count"] = token_count
-            jsonlines.Writer(out).write(n)
-
-    output_file = (
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_token_count.jsonl"
-    )
+            item["token_count"] = len(tokenizer.encode(text))
+            writer.write(item)
 
     return output_file
 
 
 def language_detection_turns(input_file):
-    print("Detecting language and turns...")
-
-    with open(
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_language_turns.jsonl",
-        "a+",
-        encoding="utf8",
-    ) as out:
-        data_list = load_jsonl_to_list(input_file)
-        for i, n in tqdm(enumerate(data_list)):
-            text = ""
-            for i in n["conversations"]:
-                text += i["value"]
-            if n["conversations"][0]["from"] == "system":
-                turns = round((len(n["conversations"][1:])) / 2)
-            else:
-                turns = round((len(n["conversations"])) / 2)
+    print("检测语言和对话轮次...")
+    output_file = f"{os.path.splitext(input_file)[0]}_language_turns.jsonl"
+    
+    with jsonlines.open(output_file, mode='w') as writer:
+        for item in tqdm(load_jsonl_to_list(input_file)):
+            text = ''.join(conv['value'] for conv in item['conversations'])
+            turns = (len(item['conversations']) - (item['conversations'][0]['from'] == 'system')) // 2
+            
             try:
                 lang = detector.detect_language_of(text).iso_code_639_1.name
             except:
                 lang = None
-
-            n["language"] = lang
-            n["turns"] = turns
-
-            jsonlines.Writer(out).write(n)
-
-    output_file = (
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_language_turns.jsonl"
-    )
+            
+            item.update({'language': lang, 'turns': turns})
+            writer.write(item)
+    
     return output_file
 
 
 def safety_get_completion(prompts, llm):
     sampling_params = SamplingParams()
     outputs = llm.generate(prompts, sampling_params)
-    responses = []
-    for output in outputs:
-        response = output.outputs[0].text
-        responses.append(response)
-    return responses
+    return [output.outputs[0].text for output in outputs]
 
 
 def safety_tag(model, device, input_file, batch_size, save_as):
-    print("Generating safety tags...")
-    if "," in device:
-        cuda_devices = [int(d) for d in device.split(",")]
-    else:
-        cuda_devices = [int(device)]
-    tensor_parallel_size = len(cuda_devices)
-
+    print("生成安全标签...")
+    cuda_devices = [int(d) for d in device.split(",")] if "," in device else [int(device)]
+    
     safety_llm = LLM(
         model=model,
         gpu_memory_utilization=0.95,
-        tensor_parallel_size=tensor_parallel_size,
+        tensor_parallel_size=len(cuda_devices),
         enable_prefix_caching=True,
         max_model_len=4096,
     )
     safety_tokenizer = AutoTokenizer.from_pretrained(model)
 
-    with open(
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_safety.{save_as}",
-        "a+",
-        encoding="utf8",
-    ) as out:
-
-        all_batch = []
+    output_file = f"{os.path.splitext(input_file)[0]}_safety.{save_as}"
+    
+    with jsonlines.open(output_file, mode='w') as writer:
         data_list = load_jsonl_to_list(input_file)
-        for i in tqdm(range(0, len(data_list), batch_size)):
-            all_batch = data_list[i : i + batch_size]
-            prompts_safety = []
-            for item in all_batch:
-                text_safety = safety_tokenizer.apply_chat_template(
-                    conversations_mapping(item["conversations"]), tokenize=False
-                )
-                prompts_safety.append(text_safety)
+        for batch in tqdm([data_list[i:i+batch_size] for i in range(0, len(data_list), batch_size)]):
+            prompts = [safety_tokenizer.apply_chat_template(conversations_mapping(item["conversations"]), tokenize=False) for item in batch]
+            results = safety_get_completion(prompts, llm=safety_llm)
+            
+            for item, result in zip(batch, results):
+                item["safety"] = "unsafe" if "unsafe" in result else "safe"
+                writer.write(item)
 
-            result = safety_get_completion(prompts_safety, llm=safety_llm)
-            refined_result = []
-            for res in result:
-                if "unsafe" in res:
-                    refined_result.append("unsafe")
-                else:
-                    refined_result.append("safe")
+    cleanup(safety_llm)
+    return output_file
 
-            for num, res in enumerate(zip(all_batch, refined_result)):
-                all_batch[num]["safety"] = res[1]
-                jsonlines.Writer(out).write(all_batch[num])
-
-    output_file = (
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_safety.{save_as}"
-    )
+def cleanup(llm):
     destroy_model_parallel()
     destroy_distributed_environment()
-    del safety_llm.llm_engine.model_executor
-    del safety_llm
+    del llm.llm_engine.model_executor
+    del llm
     gc.collect()
     torch.cuda.empty_cache()
-    return output_file
 
 
 def reward_tag(model, device, input_file, batch_size, save_as):
-    print("Generating reward tags...")
-    if "," in device:
-        cuda_devices = [int(d) for d in device.split(",")]
-    else:
-        cuda_devices = [int(device)]
+    print("生成奖励标签...")
+    cuda_devices = [int(d) for d in device.split(",")] if "," in device else [int(device)]
 
     reward_tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
     reward_model = AutoModel.from_pretrained(
         model,
-        device_map="cuda:{device}".format(device=cuda_devices[0]),
+        device_map=f"cuda:{cuda_devices[0]}",
         torch_dtype=torch.float16,
         trust_remote_code=True,
     )
 
-    with open(
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_reward.{save_as}",
-        "a+",
-        encoding="utf8",
-    ) as out:
-
+    output_file = f"{os.path.splitext(input_file)[0]}_reward.{save_as}"
+    
+    with jsonlines.open(output_file, mode='w') as writer:
         data_list = load_jsonl_to_list(input_file)
-
-        batch_size = 1
-        for n in tqdm(data_list):
-
-            token_count = 0
-
-            if "token_count" in n:
-                token_count = n["token_count"]
-            else:
-                text_ = reward_tokenizer.apply_chat_template(
-                    conversations_mapping(n["conversations"]),
+        
+        for item in tqdm(data_list):
+            token_count = item.get("token_count", 0)
+            if not token_count:
+                text = reward_tokenizer.apply_chat_template(
+                    conversations_mapping(item["conversations"]),
                     tokenize=False,
                     add_generation_prompt=True,
                 )
-                token_count = len(reward_tokenizer.encode(text_))
+                token_count = len(reward_tokenizer.encode(text))
+            
+            item["reward"] = 0 if token_count > 8192 else reward_model.get_score(
+                reward_tokenizer, conversations_mapping(item["conversations"])
+            )
+            writer.write(item)
 
-            if token_count > 8192:
-                n["reward"] = 0
-
-                jsonlines.Writer(out).write(n)
-            else:
-                result = reward_model.get_score(
-                    reward_tokenizer, conversations_mapping(n["conversations"])
-                )
-                n["reward"] = result
-                jsonlines.Writer(out).write(n)
-
-    output_file = (
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_reward.{save_as}"
-    )
     return output_file
 
 
 
 def main():
-    if args.tag_mission in ["difficulty", "classification", "quality"]:
-        generate_tags(
-            args.device,
-            args.model_path,
-            args.tag_mission,
-            args.max_tokens,
-            args.temperature,
-            args.repetition_penalty,
-            args.input_file,
-            args.batch_size,
-            args.save_as,
-        )
-    elif args.tag_mission == "language":
-        language_detection_turns(args.input_file)
-    elif args.tag_mission == "safety":
-        safety_tag(
-            args.guard_model_path,
-            args.device,
-            args.input_file,
-            args.batch_size,
-            args.save_as,
-        )
-    elif args.tag_mission == "reward":
-        reward_tag(
-            args.reward_model_path,
-            args.device,
-            args.input_file,
-            args.batch_size,
-            args.save_as,
-        )
-    elif args.tag_mission == "token_count":
-        token_count(args.input_file, args.model_path)
-    elif args.tag_mission == "refined":
-        refined_result(args.input_file, args.save_as)
+    tag_functions = {
+        "difficulty": generate_tags,
+        "classification": generate_tags,
+        "quality": generate_tags,
+        "language": language_detection_turns,
+        "safety": safety_tag,
+        "reward": reward_tag,
+        "token_count": token_count,
+        "refined": refined_result
+    }
+
+    if args.tag_mission in tag_functions:
+        func = tag_functions[args.tag_mission]
+        if args.tag_mission in ["difficulty", "classification", "quality"]:
+            func(args.device, args.model_path, args.tag_mission, args.max_tokens,
+                 args.temperature, args.repetition_penalty, args.input_file,
+                 args.batch_size, args.save_as)
+        elif args.tag_mission in ["safety", "reward"]:
+            model_path = args.guard_model_path if args.tag_mission == "safety" else args.reward_model_path
+            func(model_path, args.device, args.input_file, args.batch_size, args.save_as)
+        elif args.tag_mission == "token_count":
+            func(args.input_file, args.model_path)
+        else:
+            func(args.input_file, args.save_as)
     else:
-        print("Invalid tag mission.")
+        print("无效的标签任务。")
 
 
 if __name__ == "__main__":

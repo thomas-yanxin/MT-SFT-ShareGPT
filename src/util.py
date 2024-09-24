@@ -8,129 +8,61 @@ from tqdm import tqdm
 
 
 def conversations_mapping(conversations):
-    # 将ShareGPT转chatml格式
-    chatml = []
-    for i in conversations:
-        if "system" in i["from"]:
-            chatml.append({"role": "system", "content": i["value"]})
-        else:
-            if "human" in i["from"]:
-                chatml.append({"role": "user", "content": i["value"]})
-            elif "gpt" in i["from"]:
-                chatml.append({"role": "assistant", "content": i["value"]})
-    return chatml
+    role_map = {
+        "system": "system",
+        "human": "user",
+        "gpt": "assistant"
+    }
+    return [{"role": role_map.get(i["from"].split()[0], "user"), "content": i["value"]} for i in conversations]
 
 
 def load_jsonl_to_list(jsonl_file_path):
-    data_list = []
     with open(jsonl_file_path, "r", encoding="utf8") as file:
-        for line in jsonlines.Reader(file):
-            text = ""
-            for i in line["conversations"]:
-                text += i["value"] + " "
-            line["text"] = text
-            data_list.append(line)
-    return data_list
+        return [
+            {**line, "text": " ".join(i["value"] for i in line["conversations"])}
+            for line in jsonlines.Reader(file)
+        ]
 
 
 def refined_result(input_file, save_as):
-    with open(
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_refined.{save_as}",
-        "a+",
-        encoding="utf8",
-    ) as out:
-        with open(input_file, "r", encoding="utf8") as file:
-            key_list = [
-                "id",
-                "conversations",
-                "difficulty",
-                "classification",
-                "quality",
-                "safety",
-                "rewards",
-                "language",
-                "turns",
-                "token_count",
-                "source",
-            ]
-            for line in jsonlines.Reader(file):
-                refined = {}
-                for key in key_list:
-                    if key in line:
-                        if key == "difficulty":
-                            if line[key] in [
-                                "very easy",
-                                "easy",
-                                "medium",
-                                "hard",
-                                "very hard",
-                            ]:
-                                refined[key] = line[key]
-                            else:
-                                refined[key] = "medium"
-                        elif key == "classification":
-                            if line[key] in [
-                                "Information seeking",
-                                "Reasoning",
-                                "Planning",
-                                "Editing",
-                                "Coding & Debugging",
-                                "Math",
-                                "Role playing",
-                                "Data analysis",
-                                "Creative writing",
-                                "Advice seeking",
-                                "Brainstorming",
-                                "Others",
-                            ]:
-                                refined[key] = line[key]
-                            else:
-                                refined[key] = "Others"
-                        elif key == "quality":
-                            # [very poor/poor/average/good/excellent]
-                            if line[key] in [
-                                "very poor",
-                                "poor",
-                                "average",
-                                "good",
-                                "excellent",
-                            ]:
-                                refined[key] = line[key]
-                            else:
-                                refined[key] = "average"
-                        elif key == "safety":
-                            if line[key] in ["unsafe", "safe"]:
-                                refined[key] = line[key]
-                            else:
-                                refined[key] = "unsafe"
-                        elif key == "rewards":
-                            refined[key] = float(line[key])
-                        else:
-                            refined[key] = line[key]
-                    else:
-                        if key == "difficulty":
-                            refined[key] = "medium"
-                        elif key == "classification":
-                            refined[key] = "Others"
-                        elif key == "quality":
-                            refined[key] = "average"
-                        elif key == "safety":
-                            refined[key] = "safe"
-                        elif key == "rewards":
-                            refined[key] = 0
-                        elif key == "language":
-                            refined[key] = None
-                        elif key == "turns":
-                            refined[key] = 1
-                        elif key == "token_count":
-                            refined[key] = 0
-                        elif key == "source":
-                            refined[key] = "None"
-                jsonlines.Writer(out).write(refined)
+    output_file = f"{os.path.splitext(input_file)[0]}_refined.{save_as}"
+    key_list = [
+        "id", "conversations", "difficulty", "classification", "quality",
+        "safety", "rewards", "language", "turns", "token_count", "source"
+    ]
+    default_values = {
+        "difficulty": "medium",
+        "classification": "Others",
+        "quality": "average",
+        "safety": "safe",
+        "rewards": 0,
+        "language": None,
+        "turns": 1,
+        "token_count": 0,
+        "source": "None"
+    }
+    valid_values = {
+        "difficulty": ["very easy", "easy", "medium", "hard", "very hard"],
+        "classification": ["Information seeking", "Reasoning", "Planning", "Editing", "Coding & Debugging", "Math", "Role playing", "Data analysis", "Creative writing", "Advice seeking", "Brainstorming", "Others"],
+        "quality": ["very poor", "poor", "average", "good", "excellent"],
+        "safety": ["unsafe", "safe"]
+    }
 
-    output_file = (
-        f"{input_file.split(os.path.splitext(input_file)[-1])[0]}_refined.{save_as}"
-    )
+    with jsonlines.open(output_file, mode='w') as writer:
+        for line in jsonlines.open(input_file):
+            refined = {}
+            for key in key_list:
+                if key in line:
+                    if key in valid_values:
+                        refined[key] = line[key] if line[key] in valid_values[key] else default_values[key]
+                    elif key == "rewards":
+                        refined[key] = float(line[key])
+                    else:
+                        refined[key] = line[key]
+                else:
+                    refined[key] = default_values.get(key, None)
+            writer.write(refined)
+
     return output_file
 
 
